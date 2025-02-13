@@ -1,0 +1,48 @@
+import streamlit as st
+import joblib
+import numpy as np
+import os
+
+# Cargar el modelo y el scaler
+modelo_path = "modelo_peritazgo.bin"
+scaler_path = "scalercasa.bin"
+
+if not os.path.exists(modelo_path) or not os.path.exists(scaler_path):
+    st.error("Los archivos del modelo o scaler no se encuentran en el directorio.")
+else:
+    modelo = joblib.load(modelo_path)
+    scaler = joblib.load(scaler_path)
+
+    # Configurar la página
+    st.set_page_config(page_title="PERITO VIRTUAL", layout="centered")
+    
+    # Título y descripción
+    st.image("https://img.freepik.com/vector-gratis/concepto-busqueda-casa-pagina-aterrizaje_23-2148298981.jpg?semt=ais_hybrid", use_column_width=True)
+    st.title("🏡 PERITO VIRTUAL")
+    st.write("Esta aplicación predice el precio de una vivienda basado en múltiples factores como distancia, número de habitaciones, baños, capacidad de parqueo y áreas construidas y no construidas.")
+    
+    # Tabs
+    tab1, tab2 = st.tabs(["📊 Ingresar Datos", "💰 Predicción"])
+    
+    with tab1:
+        st.header("📌 Ajusta las características de la vivienda")
+        distancia = st.slider("Distancia (km)", 1, 97, 79)
+        habitaciones = st.slider("Habitaciones", 1, 20, 3)
+        banos = st.slider("Baños", 1, 8, 2)
+        carros = st.slider("Espacios para carros", 1, 10, 2)
+        area_cons = st.slider("Área construida (m²)", 46, 1198, 192)
+        area_no_cons = st.slider("Área no construida (m²)", 5, 992, 88)
+        
+        valores = np.array([[distancia, habitaciones, banos, carros, area_cons, area_no_cons]])
+        valores_norm = scaler.transform(valores)
+    
+    with tab2:
+        st.header("💰 Predicción del precio")
+        prediccion = modelo.predict(valores_norm)[0]
+        st.markdown(f"<h1 style='color:red;'>${int(prediccion):,} </h1>", unsafe_allow_html=True)
+        
+        st.subheader("📈 Ecuación de regresión")
+        coeficientes = modelo.coef_
+        intercepto = modelo.intercept_
+        ecuacion = " + ".join([f"({coef:.2f} * X{i+1})" for i, coef in enumerate(coeficientes)])
+        st.write(f"Precio = {ecuacion} + ({intercepto:.2f})")
